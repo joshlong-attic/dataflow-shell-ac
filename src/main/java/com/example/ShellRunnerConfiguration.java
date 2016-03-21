@@ -54,7 +54,6 @@ public class ShellRunnerConfiguration {
 				return method.invoke(commandLine, invocation.getArguments());
 			}
 		};
-
 		proxyFactoryBean.addAdvice(methodInterceptor);
 		proxyFactoryBean.setSingleton(true);
 		return CommandLine.class.cast(proxyFactoryBean.getObject());
