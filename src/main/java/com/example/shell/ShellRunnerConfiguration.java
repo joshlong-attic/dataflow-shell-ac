@@ -49,14 +49,13 @@ public class ShellRunnerConfiguration {
 
 		private ExitShellRequest doRun(String[] args) {
 			return this.doRun(this.stopWatch, this.logger,
-					this.commandLine, this.lineShellComponent, args);
+					this.commandLine, this.lineShellComponent);
 		}
 
 		private ExitShellRequest doRun(StopWatch stopWatch,
 		                               Logger logger,
 		                               CommandLine commandLine,
-		                               JLineShellComponent shell,
-		                               String[] args) {
+		                               JLineShellComponent shell) {
 			stopWatch.start();
 			try {
 
@@ -149,61 +148,4 @@ public class ShellRunnerConfiguration {
 	public JLineShellComponent shell() {
 		return new JLineShellComponent();
 	}
-
-//	//@Order(Integer.MIN_VALUE   + 0)
-//	@Component(value = "shell")
-//	public static class JLineShellComponentCLR
-//			extends JLineShellComponent {
-//
-//		// move the processing based on the
-//		/*// availability of args to _after_ the initialization callback
-//		@Override
-//		public void afterPropertiesSet() {
-//			// noop
-//		}
-//
-//		void go(String[] args) {
-//			super.afterPropertiesSet();
-//		}*/
-//	}
-
-
-/*	@Component
-	@Order(Integer.MIN_VALUE)
-	public static class PreCLR implements CommandLineRunner {
-
-		@Override
-		public void run(String... strings) throws Exception {
-			System.err.println("pre()");
-			commandLine.go(strings);
-			lineShell.go(strings);
-		}
-
-		@Autowired
-		private JLineShellComponentCLR lineShell;
-
-		@Autowired
-		private CommandLineCLR commandLine;
-
-	}
-
-
-	@Component
-	@Order(Integer.MAX_VALUE)
-	public static class PostCLR implements CommandLineRunner {
-
-		@Override
-		public void run(String... args) throws Exception {
-			System.err.println("post()");
-			ExitShellRequest exitShellRequest = commandLine.doRun(args);
-			System.exit(exitShellRequest.getExitCode());
-		}
-
-		@Autowired
-		private JLineShellComponentCLR lineShell;
-
-		@Autowired
-		private CommandLineCLR commandLine;
-	}*/
-
 }
