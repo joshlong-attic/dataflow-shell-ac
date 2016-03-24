@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @EnableShell
-@ComponentScan("org.springframework.cloud.dataflow.shell")
+//@ComponentScan("org.springframework.cloud.dataflow.shell")
 public class ShellApplication {
 	public static void main(String args[]) {
 		SpringApplication.run(ShellApplication.class, args);

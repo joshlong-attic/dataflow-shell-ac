@@ -1,10 +1,9 @@
 package com.example;
 
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.aop.framework.ProxyFactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.*;
+import org.springframework.core.annotation.Order;
 import org.springframework.shell.CommandLine;
 import org.springframework.shell.ShellException;
 import org.springframework.shell.SimpleShellCommandLineOptions;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StopWatch;
 
-import java.lang.reflect.Method;
 import java.util.logging.Logger;
 
 
@@ -25,97 +23,122 @@ import java.util.logging.Logger;
 @Configuration
 public class ShellRunnerConfiguration {
 
-	private final StopWatch stopWatch = new StopWatch("Spring Shell");
-	private final Logger logger = Logger.getLogger(getClass().getName());
-	private CommandLine commandLine;
 
-	/**
-	 * create a lazy-initialized {@link CommandLine} that simply forwards calls
-	 * to the underlying {@link CommandLine} which is only properly initialized <EM>after</EM>
-	 * the {@link CommandLineRunner#run(String...)} callback method is honored.
-	 *
-	 */
-	@Bean
-	public CommandLine commandLine(DeferringJLineShellComponent deferringJLineShellComponent) throws NoSuchMethodException {
-		ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
-		proxyFactoryBean.setProxyTargetClass(true);
-		proxyFactoryBean.addInterface(CommandLineRunner.class);
-		proxyFactoryBean.setTargetClass(CommandLine.class);
-		Method clrRunMethod = CommandLineRunner.class.getMethod("run", String[].class);
-		MethodInterceptor methodInterceptor = invocation -> {
-			Method method = invocation.getMethod();
-			if (method.equals(clrRunMethod)) {
-				logger.info("in the run(String[] args) method!");
-				Object params = invocation.getArguments()[0];
-				doRun(deferringJLineShellComponent, (String[]) params);
-				return null;
-			} else {
-				Assert.notNull(commandLine, "the commandLine hasn't been initialized yet!");
-				return method.invoke(commandLine, invocation.getArguments());
+	@Component(value = "commandLine")
+	@Order(Integer.MIN_VALUE)
+	public static class CommandLineCommandLineRunner extends CommandLine implements CommandLineRunner {
+
+		@Autowired
+		private JLineShellComponentCommandLineRunner JLineShellComponentCommandLineRunner;
+		private CommandLine delegate;
+		private final StopWatch stopWatch = new StopWatch("Spring Shell");
+		private final Logger logger = Logger.getLogger(getClass().getName());
+
+		public CommandLineCommandLineRunner() {
+			super(null, 0, null);
+		}
+
+		@Override
+		public void run(String... strings) throws Exception {
+			this.logger.info("in " + getClass().getName() + "#run(String ... args)");
+			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(strings);
+			ExitShellRequest exitShellRequest = doRun(stopWatch, logger, this.delegate, this.JLineShellComponentCommandLineRunner, strings);
+			this.logger.info("exiting with " + exitShellRequest.getClass().getName() + " exit code " + exitShellRequest.getExitCode() + '.');
+			System.exit(exitShellRequest.getExitCode());
+		}
+
+		@Override
+		public String[] getArgs() {
+			this.nonNull();
+			return this.delegate.getArgs();
+		}
+
+		@Override
+		public int getHistorySize() {
+			this.nonNull();
+			return this.delegate.getHistorySize();
+		}
+
+		@Override
+		public String[] getShellCommandsToExecute() {
+			this.nonNull();
+			return this.delegate.getShellCommandsToExecute();
+		}
+
+		@Override
+		public boolean getDisableInternalCommands() {
+			this.nonNull();
+			return this.delegate.getDisableInternalCommands();
+		}
+
+		protected ExitShellRequest doRun(StopWatch stopWatch,
+		                                 Logger logger,
+		                                 CommandLine commandLine,
+		                                 JLineShellComponentCommandLineRunner shell,
+		                                 String[] args) {
+
+			stopWatch.start();
+			try {
+
+				String[] commandsToExecuteAndThenQuit = commandLine.getShellCommandsToExecute();
+				ExitShellRequest exitShellRequest;
+				if (null != commandsToExecuteAndThenQuit) {
+
+					boolean successful = false;
+					exitShellRequest = ExitShellRequest.FATAL_EXIT;
+
+					for (String cmd : commandsToExecuteAndThenQuit) {
+						if (!(successful = shell.executeCommand(cmd).isSuccess()))
+							break;
+					}
+
+					if (successful) {
+						exitShellRequest = ExitShellRequest.NORMAL_EXIT;
+					}
+				} else {
+					shell.start();
+					shell.promptLoop();
+					exitShellRequest = shell.getExitShellRequest();
+					if (exitShellRequest == null) {
+						exitShellRequest = ExitShellRequest.NORMAL_EXIT;
+					}
+					shell.waitForComplete();
+				}
+
+				if (shell.isDevelopmentMode()) {
+					System.out.println("Total execution time: " + stopWatch
+							.getLastTaskTimeMillis() + " ms");
+				}
+
+				return exitShellRequest;
+			} catch (Exception ex) {
+				throw new ShellException(ex.getMessage(), ex);
+			} finally {
+				HandlerUtils.flushAllHandlers(logger);
+				stopWatch.stop();
 			}
-		};
-		proxyFactoryBean.addAdvice(methodInterceptor);
-		proxyFactoryBean.setSingleton(true);
-		return CommandLine.class.cast(proxyFactoryBean.getObject());
+		}
+
+		private void nonNull() {
+			Assert.notNull(this.delegate, "the delegate hasn't been initialized yet!");
+		}
 	}
 
 
 	@Component
-	public static class DeferringJLineShellComponent extends JLineShellComponent {
+	public static class JLineShellComponentCommandLineRunner extends JLineShellComponent implements CommandLineRunner {
+
 		@Override
 		public void afterPropertiesSet() {
 			// noop
 		}
 
-		public void deferredAfterPropertiesSet() {
+		@Override
+		public void run(String... strings) throws Exception {
 			super.afterPropertiesSet();
 		}
+
 	}
 
-	protected void doRun(DeferringJLineShellComponent shell, String[] args) {
 
-		this.stopWatch.start();
-		try {
-			this.commandLine = SimpleShellCommandLineOptions.parseCommandLine(args);
-
-			shell.deferredAfterPropertiesSet();
-
-			String[] commandsToExecuteAndThenQuit = commandLine.getShellCommandsToExecute();
-			ExitShellRequest exitShellRequest;
-			if (null != commandsToExecuteAndThenQuit) {
-
-				boolean successful = false;
-
-				exitShellRequest = ExitShellRequest.FATAL_EXIT;
-
-				for (String cmd : commandsToExecuteAndThenQuit) {
-					if (!(successful = shell.executeCommand(cmd).isSuccess()))
-						break;
-				}
-
-				if (successful) {
-					exitShellRequest = ExitShellRequest.NORMAL_EXIT;
-				}
-			} else {
-				shell.start();
-				shell.promptLoop();
-				exitShellRequest = shell.getExitShellRequest();
-				if (exitShellRequest == null) {
-					exitShellRequest = ExitShellRequest.NORMAL_EXIT;
-				}
-				shell.waitForComplete();
-			}
-
-			if (shell.isDevelopmentMode()) {
-				System.out.println("Total execution time: " + this.stopWatch
-						.getLastTaskTimeMillis() + " ms");
-			}
-
-		} catch (Exception ex) {
-			throw new ShellException(ex.getMessage(), ex);
-		} finally {
-			HandlerUtils.flushAllHandlers(this.logger);
-			this.stopWatch.stop();
-		}
-	}
 }
