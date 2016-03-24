@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 @SpringBootApplication
 @EnableShell
+@ComponentScan("org.springframework.cloud.dataflow.shell")
 public class ShellApplication {
 	public static void main(String args[]) {
 		SpringApplication.run(ShellApplication.class, args);

@@ -142,22 +142,43 @@ public class ShellRunnerConfiguration {
 		}
 	}
 
-	@Bean
-	CommandLineRunner init(JLineShellComponentCLR lineShell, CommandLineCLR commandLine) {
-		return new CommandLineRunner() {
-			@Override
-			public void run(String... args) throws Exception {
 
-				commandLine.go(args);
+	@Component
+	@Order(Integer.MIN_VALUE)
+	public static class PreCLR implements CommandLineRunner {
 
-				lineShell.go(args);
+		@Override
+		public void run(String... strings) throws Exception {
+			System.err.println("pre()");
+			commandLine.go(strings);
+			lineShell.go(strings);
+		}
 
-				ExitShellRequest exitShellRequest = commandLine.doRun(args);
+		@Autowired
+		private JLineShellComponentCLR lineShell;
 
-				System.exit(exitShellRequest.getExitCode());
+		@Autowired
+		private CommandLineCLR commandLine;
 
-			}
-		};
+	}
+
+
+	@Component
+	@Order(Integer.MAX_VALUE)
+	public static class PostCLR implements CommandLineRunner {
+
+		@Override
+		public void run(String... args) throws Exception {
+			System.err.println("post()");
+			ExitShellRequest exitShellRequest = commandLine.doRun(args);
+			System.exit(exitShellRequest.getExitCode());
+		}
+
+		@Autowired
+		private JLineShellComponentCLR lineShell;
+
+		@Autowired
+		private CommandLineCLR commandLine;
 	}
 
 }
