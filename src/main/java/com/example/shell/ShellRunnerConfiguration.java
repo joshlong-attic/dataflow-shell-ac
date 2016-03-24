@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.*;
-import org.springframework.core.annotation.Order;
 import org.springframework.shell.CommandLine;
 import org.springframework.shell.ShellException;
 import org.springframework.shell.SimpleShellCommandLineOptions;
@@ -43,23 +42,15 @@ public class ShellRunnerConfiguration {
 
 		@Override
 		public void run(String... args) throws Exception {
-			ExitShellRequest exitShellRequest = this.doRun(args);
+			ExitShellRequest exitShellRequest = this.doRun();
 			System.exit(exitShellRequest.getExitCode());
 		}
 
-		private ExitShellRequest doRun(String[] args) {
-			return this.doRun(this.stopWatch, this.logger,
-					this.commandLine, this.lineShellComponent);
-		}
-
-		private ExitShellRequest doRun(StopWatch stopWatch,
-		                               Logger logger,
-		                               CommandLine commandLine,
-		                               JLineShellComponent shell) {
-			stopWatch.start();
+		private ExitShellRequest doRun() {
+			this.stopWatch.start();
 			try {
 
-				String[] commandsToExecuteAndThenQuit = commandLine.getShellCommandsToExecute();
+				String[] commandsToExecuteAndThenQuit = this.commandLine.getShellCommandsToExecute();
 				ExitShellRequest exitShellRequest;
 				if (null != commandsToExecuteAndThenQuit) {
 
@@ -67,7 +58,7 @@ public class ShellRunnerConfiguration {
 					exitShellRequest = ExitShellRequest.FATAL_EXIT;
 
 					for (String cmd : commandsToExecuteAndThenQuit) {
-						if (!(successful = shell.executeCommand(cmd).isSuccess()))
+						if (!(successful = this.lineShellComponent.executeCommand(cmd).isSuccess()))
 							break;
 					}
 
@@ -75,17 +66,17 @@ public class ShellRunnerConfiguration {
 						exitShellRequest = ExitShellRequest.NORMAL_EXIT;
 					}
 				} else {
-					shell.start();
-					shell.promptLoop();
-					exitShellRequest = shell.getExitShellRequest();
+					this.lineShellComponent.start();
+					this.lineShellComponent.promptLoop();
+					exitShellRequest = this.lineShellComponent.getExitShellRequest();
 					if (exitShellRequest == null) {
 						exitShellRequest = ExitShellRequest.NORMAL_EXIT;
 					}
-					shell.waitForComplete();
+					this.lineShellComponent.waitForComplete();
 				}
 
-				if (shell.isDevelopmentMode()) {
-					System.out.println("Total execution time: " + stopWatch
+				if (this.lineShellComponent.isDevelopmentMode()) {
+					System.out.println("Total execution time: " + this.stopWatch
 							.getLastTaskTimeMillis() + " ms");
 				}
 
@@ -93,10 +84,11 @@ public class ShellRunnerConfiguration {
 			} catch (Exception ex) {
 				throw new ShellException(ex.getMessage(), ex);
 			} finally {
-				HandlerUtils.flushAllHandlers(logger);
-				stopWatch.stop();
+				HandlerUtils.flushAllHandlers(this.logger);
+				this.stopWatch.stop();
 			}
 		}
+
 	}
 
 	@Component(value = "commandLine")
