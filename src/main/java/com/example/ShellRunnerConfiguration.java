@@ -25,26 +25,23 @@ public class ShellRunnerConfiguration {
 
 
 	@Component(value = "commandLine")
-	@Order(Integer.MIN_VALUE)
-	public static class CommandLineCommandLineRunner extends CommandLine implements CommandLineRunner {
+	@Order(Integer.MIN_VALUE + 1)
+	public static class CommandLineCLR extends CommandLine {
 
 		@Autowired
-		private JLineShellComponentCommandLineRunner JLineShellComponentCommandLineRunner;
+		private JLineShellComponent lineShellComponentCommandLineRunner;
 		private CommandLine delegate;
 		private final StopWatch stopWatch = new StopWatch("Spring Shell");
 		private final Logger logger = Logger.getLogger(getClass().getName());
 
-		public CommandLineCommandLineRunner() {
+		public CommandLineCLR() {
 			super(null, 0, null);
 		}
 
-		@Override
-		public void run(String... strings) throws Exception {
+		void go(String[] strings) throws Exception {
 			this.logger.info("in " + getClass().getName() + "#run(String ... args)");
 			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(strings);
-			ExitShellRequest exitShellRequest = doRun(stopWatch, logger, this.delegate, this.JLineShellComponentCommandLineRunner, strings);
-			this.logger.info("exiting with " + exitShellRequest.getClass().getName() + " exit code " + exitShellRequest.getExitCode() + '.');
-			System.exit(exitShellRequest.getExitCode());
+
 		}
 
 		@Override
@@ -71,12 +68,15 @@ public class ShellRunnerConfiguration {
 			return this.delegate.getDisableInternalCommands();
 		}
 
+		public ExitShellRequest doRun(String[] args) {
+			return this.doRun(this.stopWatch, this.logger, this.delegate, this.lineShellComponentCommandLineRunner, args);
+		}
+
 		protected ExitShellRequest doRun(StopWatch stopWatch,
 		                                 Logger logger,
 		                                 CommandLine commandLine,
-		                                 JLineShellComponentCommandLineRunner shell,
+		                                 JLineShellComponent shell,
 		                                 String[] args) {
-
 			stopWatch.start();
 			try {
 
@@ -125,20 +125,39 @@ public class ShellRunnerConfiguration {
 	}
 
 
-	@Component
-	public static class JLineShellComponentCommandLineRunner extends JLineShellComponent implements CommandLineRunner {
+	//@Order(Integer.MIN_VALUE   + 0)
+	@Component(value = "shell")
+	public static class JLineShellComponentCLR
+			extends JLineShellComponent {
 
+		// move the processing based on the
+		// availability of args to _after_ the initialization callback
 		@Override
 		public void afterPropertiesSet() {
 			// noop
 		}
 
-		@Override
-		public void run(String... strings) throws Exception {
+		void go(String[] args) {
 			super.afterPropertiesSet();
 		}
-
 	}
 
+	@Bean
+	CommandLineRunner init(JLineShellComponentCLR lineShell, CommandLineCLR commandLine) {
+		return new CommandLineRunner() {
+			@Override
+			public void run(String... args) throws Exception {
+
+				commandLine.go(args);
+
+				lineShell.go(args);
+
+				ExitShellRequest exitShellRequest = commandLine.doRun(args);
+
+				System.exit(exitShellRequest.getExitCode());
+
+			}
+		};
+	}
 
 }
