@@ -18,6 +18,9 @@ import java.util.logging.Logger;
 
 
 /**
+ *
+ * TODO try rewriting this by _injecting_ `ApplicationArguments` into the component. It _should_ be available before `#afterPropertiesSet`!!
+ *
  * @author <a href="mailto:josh@joshlong.com">Josh Long</a>
  */
 @Configuration
