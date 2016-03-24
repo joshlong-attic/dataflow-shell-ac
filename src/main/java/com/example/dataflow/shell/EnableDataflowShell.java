@@ -1,7 +1,6 @@
-package com.example;
+package com.example.dataflow.shell;
 
-
-import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
+import com.example.shell.EnableShell;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.*;
@@ -13,7 +12,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@AutoConfigurationPackage
-@Import(ShellRunnerConfiguration.class)
-public @interface EnableShell {
+@Import(DataflowImportConfig.class)
+@EnableShell
+public @interface EnableDataflowShell {
 }

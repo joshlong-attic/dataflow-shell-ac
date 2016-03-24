@@ -1,4 +1,4 @@
-package com.example;
+package com.example.shell;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
