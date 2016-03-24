@@ -1,5 +1,8 @@
 package com.example.shell;
 
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.CommandLineRunner;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StopWatch;
 
+import java.lang.reflect.Method;
 import java.util.logging.Logger;
 
 
@@ -88,52 +92,11 @@ public class ShellRunnerConfiguration {
 				this.stopWatch.stop();
 			}
 		}
-
 	}
 
-	@Component(value = "commandLine")
-	public static class ApplicationArgumentsAwareCommandLine extends CommandLine {
-
-		private CommandLine delegate;
-
-		public ApplicationArgumentsAwareCommandLine() {
-			super(null, 0, null);
-		}
-
-		@Autowired
-		protected void configArguments(ApplicationArguments args) throws Exception {
-			//System.out.println ("setting up the " + ApplicationArguments.class.getName() +'.');
-			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(
-					args.getSourceArgs());
-		}
-
-		@Override
-		public String[] getArgs() {
-			this.nonNull();
-			return this.delegate.getArgs();
-		}
-
-		@Override
-		public int getHistorySize() {
-			this.nonNull();
-			return this.delegate.getHistorySize();
-		}
-
-		@Override
-		public String[] getShellCommandsToExecute() {
-			this.nonNull();
-			return this.delegate.getShellCommandsToExecute();
-		}
-
-		@Override
-		public boolean getDisableInternalCommands() {
-			this.nonNull();
-			return this.delegate.getDisableInternalCommands();
-		}
-
-		private void nonNull() {
-			Assert.notNull(this.delegate, "the delegate hasn't been initialized yet!");
-		}
+	@Bean
+	public CommandLine commandLine(ApplicationArguments args) throws Exception {
+		return SimpleShellCommandLineOptions.parseCommandLine(args.getSourceArgs());
 	}
 
 	@Bean

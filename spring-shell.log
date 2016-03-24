@@ -42,3 +42,8 @@ help
 // dataflow 1.2.0.M1 log opened at 2016-03-24 04:50:48
 // dataflow 1.2.0.M1 log opened at 2016-03-24 04:51:14
 help
+// dataflow 1.2.0.M1 log opened at 2016-03-24 05:13:22
+hw simple --message hi
+help
+// dataflow 1.2.0.M1 log opened at 2016-03-24 05:15:19
+help
