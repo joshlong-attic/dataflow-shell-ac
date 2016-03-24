@@ -19,71 +19,44 @@ import java.util.logging.Logger;
 
 
 /**
- *
- * TODO try rewriting this by _injecting_ `ApplicationArguments` into the component. It _should_ be available before `#afterPropertiesSet`!!
- *
  * @author <a href="mailto:josh@joshlong.com">Josh Long</a>
  */
 @Configuration
 public class ShellRunnerConfiguration {
 
+	/**
+	 * This does basically the same thing as {@link org.springframework.shell.Bootstrap} in Spring Shell,
+	 * but using Spring Boot's {@link CommandLineRunner} as a callback hook for initialization, instead
+	 * of squatting on the application's one {@code main(String []args)} method.
+	 */
+	@Component
+	public static class ShellBootstrapCommandLineRunner implements CommandLineRunner {
 
-	@Component(value = "commandLine")
-	@Order(Integer.MIN_VALUE + 1)
-	public static class CommandLineCLR extends CommandLine
-		implements CommandLineRunner
-	{
-
-		@Autowired
-		private JLineShellComponent lineShellComponentCommandLineRunner;
-		private CommandLine delegate;
-		private final StopWatch stopWatch = new StopWatch("Spring Shell");
-		private final Logger logger = Logger.getLogger(getClass().getName());
-
-		public CommandLineCLR() {
-			super(null, 0, null);
-		}
+		private StopWatch stopWatch = new StopWatch("Spring Shell");
+		private Logger logger = Logger.getLogger(getClass().getName());
 
 		@Autowired
-		public void configArguments  (ApplicationArguments args)  throws Exception {
-			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(
-					args.getSourceArgs());
+		private JLineShellComponent lineShellComponent;
 
-		}
-
-		@Override
-		public String[] getArgs() {
-			this.nonNull();
-			return this.delegate.getArgs();
-		}
+		@Autowired
+		private CommandLine commandLine;
 
 		@Override
-		public int getHistorySize() {
-			this.nonNull();
-			return this.delegate.getHistorySize();
+		public void run(String... args) throws Exception {
+			ExitShellRequest exitShellRequest = this.doRun(args);
+			System.exit(exitShellRequest.getExitCode());
 		}
 
-		@Override
-		public String[] getShellCommandsToExecute() {
-			this.nonNull();
-			return this.delegate.getShellCommandsToExecute();
+		private ExitShellRequest doRun(String[] args) {
+			return this.doRun(this.stopWatch, this.logger,
+					this.commandLine, this.lineShellComponent, args);
 		}
 
-		@Override
-		public boolean getDisableInternalCommands() {
-			this.nonNull();
-			return this.delegate.getDisableInternalCommands();
-		}
-
-		public ExitShellRequest doRun(String[] args) {
-			return this.doRun(this.stopWatch, this.logger, this.delegate, this.lineShellComponentCommandLineRunner, args);
-		}
-
-		protected ExitShellRequest doRun(StopWatch stopWatch,
-		                                 Logger logger,
-		                                 CommandLine commandLine,
-		                                 JLineShellComponent shell,
-		                                 String[] args) {
+		private ExitShellRequest doRun(StopWatch stopWatch,
+		                               Logger logger,
+		                               CommandLine commandLine,
+		                               JLineShellComponent shell,
+		                               String[] args) {
 			stopWatch.start();
 			try {
 
@@ -125,35 +98,74 @@ public class ShellRunnerConfiguration {
 				stopWatch.stop();
 			}
 		}
+	}
+
+	@Component(value = "commandLine")
+	public static class ApplicationArgsAwareCommandLine extends CommandLine {
+
+		private CommandLine delegate;
+
+		public ApplicationArgsAwareCommandLine() {
+			super(null, 0, null);
+		}
+
+		@Autowired
+		protected void configArguments(ApplicationArguments args) throws Exception {
+			//System.out.println ("setting up the " + ApplicationArguments.class.getName() +'.');
+			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(
+					args.getSourceArgs());
+		}
+
+		@Override
+		public String[] getArgs() {
+			this.nonNull();
+			return this.delegate.getArgs();
+		}
+
+		@Override
+		public int getHistorySize() {
+			this.nonNull();
+			return this.delegate.getHistorySize();
+		}
+
+		@Override
+		public String[] getShellCommandsToExecute() {
+			this.nonNull();
+			return this.delegate.getShellCommandsToExecute();
+		}
+
+		@Override
+		public boolean getDisableInternalCommands() {
+			this.nonNull();
+			return this.delegate.getDisableInternalCommands();
+		}
 
 		private void nonNull() {
 			Assert.notNull(this.delegate, "the delegate hasn't been initialized yet!");
 		}
-
-		@Override
-		public void run(String... args) throws Exception {
-			ExitShellRequest exitShellRequest = this.doRun(args);
-			System.exit(exitShellRequest.getExitCode());
-		}
 	}
 
-
-	//@Order(Integer.MIN_VALUE   + 0)
-	@Component(value = "shell")
-	public static class JLineShellComponentCLR
-			extends JLineShellComponent {
-
-		// move the processing based on the
-		/*// availability of args to _after_ the initialization callback
-		@Override
-		public void afterPropertiesSet() {
-			// noop
-		}
-
-		void go(String[] args) {
-			super.afterPropertiesSet();
-		}*/
+	@Bean
+	public JLineShellComponent shell() {
+		return new JLineShellComponent();
 	}
+
+//	//@Order(Integer.MIN_VALUE   + 0)
+//	@Component(value = "shell")
+//	public static class JLineShellComponentCLR
+//			extends JLineShellComponent {
+//
+//		// move the processing based on the
+//		/*// availability of args to _after_ the initialization callback
+//		@Override
+//		public void afterPropertiesSet() {
+//			// noop
+//		}
+//
+//		void go(String[] args) {
+//			super.afterPropertiesSet();
+//		}*/
+//	}
 
 
 /*	@Component

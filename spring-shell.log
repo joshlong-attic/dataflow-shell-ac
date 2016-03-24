@@ -31,3 +31,5 @@ dataflow config server http://localhost:9393
 // Spring Shell 1.2.0.M1 log opened at 2016-03-24 04:23:03
 // Spring Shell 1.2.0.M1 log opened at 2016-03-24 04:23:19
 hw simple --message world
+// dataflow 1.2.0.M1 log opened at 2016-03-24 04:34:21
+// dataflow 1.2.0.M1 log opened at 2016-03-24 04:34:37
