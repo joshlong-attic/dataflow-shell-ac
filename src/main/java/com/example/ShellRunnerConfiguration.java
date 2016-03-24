@@ -1,6 +1,7 @@
 package com.example;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.*;
 import org.springframework.core.annotation.Order;
@@ -29,7 +30,9 @@ public class ShellRunnerConfiguration {
 
 	@Component(value = "commandLine")
 	@Order(Integer.MIN_VALUE + 1)
-	public static class CommandLineCLR extends CommandLine {
+	public static class CommandLineCLR extends CommandLine
+		implements CommandLineRunner
+	{
 
 		@Autowired
 		private JLineShellComponent lineShellComponentCommandLineRunner;
@@ -41,9 +44,10 @@ public class ShellRunnerConfiguration {
 			super(null, 0, null);
 		}
 
-		void go(String[] strings) throws Exception {
-			this.logger.info("in " + getClass().getName() + "#run(String ... args)");
-			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(strings);
+		@Autowired
+		public void configArguments  (ApplicationArguments args)  throws Exception {
+			this.delegate = SimpleShellCommandLineOptions.parseCommandLine(
+					args.getSourceArgs());
 
 		}
 
@@ -125,6 +129,12 @@ public class ShellRunnerConfiguration {
 		private void nonNull() {
 			Assert.notNull(this.delegate, "the delegate hasn't been initialized yet!");
 		}
+
+		@Override
+		public void run(String... args) throws Exception {
+			ExitShellRequest exitShellRequest = this.doRun(args);
+			System.exit(exitShellRequest.getExitCode());
+		}
 	}
 
 
@@ -134,7 +144,7 @@ public class ShellRunnerConfiguration {
 			extends JLineShellComponent {
 
 		// move the processing based on the
-		// availability of args to _after_ the initialization callback
+		/*// availability of args to _after_ the initialization callback
 		@Override
 		public void afterPropertiesSet() {
 			// noop
@@ -142,11 +152,11 @@ public class ShellRunnerConfiguration {
 
 		void go(String[] args) {
 			super.afterPropertiesSet();
-		}
+		}*/
 	}
 
 
-	@Component
+/*	@Component
 	@Order(Integer.MIN_VALUE)
 	public static class PreCLR implements CommandLineRunner {
 
@@ -182,6 +192,6 @@ public class ShellRunnerConfiguration {
 
 		@Autowired
 		private CommandLineCLR commandLine;
-	}
+	}*/
 
 }
