@@ -92,11 +92,11 @@ public class ShellRunnerConfiguration {
 	}
 
 	@Component(value = "commandLine")
-	public static class ApplicationArgsAwareCommandLine extends CommandLine {
+	public static class ApplicationArgumentsAwareCommandLine extends CommandLine {
 
 		private CommandLine delegate;
 
-		public ApplicationArgsAwareCommandLine() {
+		public ApplicationArgumentsAwareCommandLine() {
 			super(null, 0, null);
 		}
 
